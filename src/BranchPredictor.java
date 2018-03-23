@@ -35,9 +35,16 @@ public class BranchPredictor {
         this.mode = 1; // one because we are using one predictor
         this.m = m;
         this.n = n;
+
         // TODO: add your code here before calling reset
         // For example, you can generate masks here.
-        //      maskGHist = (1 << m) - 1
+        this.maskGHist = (1 << m) - 1;
+        this.maskAddr = (1 << k) - 1;
+        this.counterMax = (1 << n) - 1;
+        this.nbI = (m + k);
+        this.nbA = (n + k);
+        this.maskPrediction = (1 << this.nbI) - 1;
+
         this.reset();
     }
     
@@ -47,12 +54,16 @@ public class BranchPredictor {
             // creates an array of size 2^nbI filled with zeroes (this is by default in Java) for counters
             // you need to calculate the number of counters. Use << operation
             // TODO
+            this.bht = new int[(1 << this.nbI)];
+
         } else if (this.mode == 2) {
             this.predictor0.reset();
             this.predictor1.reset();
             this.numSelected0 = 0;
             // create an array of bytes for selectors 
             // TODO
+            this.selectors = new int[(1 << this.nbits)];
+
         }
         this.numBranches = 0;
         this.numTaken = 0;
@@ -70,6 +81,21 @@ public class BranchPredictor {
         if (this.mode == 1) {
             // Predict, update, return
             // TODO
+            int predIndex = (int)((((addr & this.maskAddr) << this.m) + this.gHist) & this.maskPrediction);
+            if(((bht[predIndex] >> (this.n - 1)) & 1) == 0){
+                prediction = 0;
+                if(bht[predIndex] > 0){
+                    bht[predIndex]--;
+                }
+            } else {
+                prediction = 1;
+                if(bht[predIndex] < counterMax){
+                    bht[predIndex]++;
+                }
+            }
+            if(prediction != outcome){
+                this.numMispredictions++;
+            }
             // update global history
             this.gHist = (this.gHist << 1) + outcome;
             return prediction;
@@ -77,10 +103,22 @@ public class BranchPredictor {
             // Predict, update, return
             int prediction0 = this.predictor0.predict(addr, outcome);
             int prediction1 = this.predictor1.predict(addr, outcome);
-            // now you need to check which predition to use
+            // now you need to check which prediction to use
             // and update the selector
             // keep track of how many times predictor0 is used
             // TODO
+            int selectIndex = (int)(addr & this.maskSelectorIndex);
+            if(((this.selectors[selectIndex] >> 1) & 1) == 0){
+                prediction = prediction0;
+                this.numSelected0++;
+            } else {
+                prediction = prediction1;
+            }
+            if(prediction0 != outcome && prediction1 == outcome && this.selectors[selectIndex] < 3){
+                this.selectors[selectIndex]++;
+            } else if(prediction0 == outcome && prediction1 != outcome && this.selectors[selectIndex] > 0){
+                this.selectors[selectIndex]--;
+            }
         }
         return prediction;
     }
