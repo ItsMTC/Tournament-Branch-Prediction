@@ -81,20 +81,31 @@ public class BranchPredictor {
         if (this.mode == 1) {
             // Predict, update, return
             // TODO
-            int predIndex = (int)((((addr & this.maskAddr) << this.m) + this.gHist) & this.maskPrediction);
+            int predIndex = (int)((((addr & this.maskAddr) << this.m) + (this.gHist & this.maskGHist)) & this.maskPrediction);
             if(((bht[predIndex] >> (this.n - 1)) & 1) == 0){
                 prediction = 0;
-                if(bht[predIndex] > 0){
+                /*if(bht[predIndex] > 0){
                     bht[predIndex]--;
-                }
+                }*/
             } else {
                 prediction = 1;
-                if(bht[predIndex] < counterMax){
+               /* if(bht[predIndex] < counterMax){
                     bht[predIndex]++;
-                }
+                }*/
             }
             if(prediction != outcome){
                 this.numMispredictions++;
+                if(prediction == 1 && bht[predIndex] > 0){
+                    bht[predIndex]--;
+                } else if(prediction == 0 && bht[predIndex] < counterMax){
+                    bht[predIndex]++;
+                }
+            } else {
+                if(prediction == 0 && bht[predIndex] > 0){
+                    bht[predIndex]--;
+                } else if(prediction == 1 && bht[predIndex] < counterMax){
+                    bht[predIndex]++;
+                }
             }
             // update global history
             this.gHist = (this.gHist << 1) + outcome;
