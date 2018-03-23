@@ -125,6 +125,9 @@ public class BranchPredictor {
             } else {
                 prediction = prediction1;
             }
+            if(prediction != outcome){
+                this.numMispredictions++;
+            }
             if(prediction0 != outcome && prediction1 == outcome && this.selectors[selectIndex] < 3){
                 this.selectors[selectIndex]++;
             } else if(prediction0 == outcome && prediction1 != outcome && this.selectors[selectIndex] > 0){
